@@ -23,7 +23,7 @@ const (
 	// CommonLogFormat : {host} {user-identifier} {auth-user-id} [{datetime}] "{method} {request} {protocol}" {response-code} {bytes}
 	CommonLogFormat = "%s - %s [%s] \"%s %s %s\" %d %d"
 	// JSONLogFormat : {"host": "{host}", "user-identifier": "{user-identifier}", "datetime": "{datetime}", "method": "{method}", "request": "{request}", "protocol": "{protocol}", "status": {status}, "bytes": {bytes}, "referer": "{referer}", "_25values": "{_25values}"
-	JSONLogFormat = `{"host":"%s", "user-identifier":"%s", "datetime":"%s", "method": "%s", "request": "%s", "protocol":"%s", "status":%d, "bytes":%d, "referer": "%s", "_25values": %d}`
+  JSONLogFormat = `{"host":"%s", "user-identifier":"%s", "datetime":"%s", "method": "%s", "request": "%s", "protocol":"%s", "status":%d, "bytes":%d, "referer": "%s", "_25values": %d, "msg":"%s"}`
 )
 
 // NewApacheCommonLog creates a log string with apache common log format
@@ -129,13 +129,52 @@ func NewCommonLogFormat(t time.Time, URI string, statusCode int) string {
 	)
 }
 
+var sentences = []string{
+  "I'm a little teapot",
+  "Here is the content of the teapot",
+  "I'm another little teapot",
+  "The flag is green",
+  "The flag is red",
+}
+
+var sentenceWeights = []int{
+  10, // "I'm a little teapot" has 10x weight
+  1,  // "Here is the content of the teapot" has 1x weight
+  2,  // "I'm another little teapot" has 2x weight
+  5,  // "The flag is green" has 5x weight
+  7,  // "The flag is red" has 7x weight
+}
+
+// weightedRandomSentence returns a random sentence from the sentences slice with weights
+func weightedRandomSentence() string {
+  // Calculate total weight
+  totalWeight := 0
+  for _, weight := range sentenceWeights {
+    totalWeight += weight
+  }
+
+  // Generate random number between 0 and totalWeight
+  r := rand.Intn(totalWeight)
+
+  // Find the sentence based on the random number
+  for i, weight := range sentenceWeights {
+    r -= weight
+    if r < 0 {
+      return sentences[i]
+    }
+  }
+
+  // Fallback (should never reach here)
+  return sentences[0]
+}
+
 // NewJSONLogFormat creates a log string with json log format
 func NewJSONLogFormat(t time.Time, URI string, statusCode int) string {
 	return fmt.Sprintf(
 		JSONLogFormat,
 		ips[rand.Intn(len(ips))],
 		RandAuthUserID(),
-		t.Format(CommonLog),
+		t.Format(RFC5424),
 		gofakeit.HTTPMethod(),
 		URI,
 		RandHTTPVersion(),
@@ -143,5 +182,6 @@ func NewJSONLogFormat(t time.Time, URI string, statusCode int) string {
 		gofakeit.Number(0, 30000),
 		gofakeit.URL(),
 		gofakeit.Number(0, 25),
+    weightedRandomSentence(),
 	)
 }

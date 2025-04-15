@@ -3,10 +3,8 @@ package main
 import (
 	"context"
 	"flag"
-	"fmt"
 	"os"
 	"os/signal"
-	"strings"
 	"time"
 
 	"github.com/grafana/explore-logs/generator/log"
@@ -17,7 +15,6 @@ import (
 
 func main() {
 	url := flag.String("url", "http://localhost:3100/loki/api/v1/push", "Loki URL")
-	dry := flag.Bool("dry", false, "Dry run: log to stdout instead of Loki")
 	tenantId := flag.String("tenant-id", "", "Loki tenant ID")
 	flag.Parse()
 
@@ -39,13 +36,6 @@ func main() {
 	}
 	defer client.Stop()
 
-	var logger log.Logger = client
-	if *dry {
-		logger = log.LoggerFunc(func(labels model.LabelSet, timestamp time.Time, message string, metadata push.LabelsAdapter) error {
-			fmt.Println(labels, timestamp, message, metadata)
-			return nil
-		})
-	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
 
@@ -53,20 +43,10 @@ func main() {
 	for namespace, apps := range generators {
 		for serviceName, generator := range apps {
 			log.ForAllClusters(namespace, serviceName, func(labels model.LabelSet, metadata push.LabelsAdapter) {
-				// Remove `metadata` from nginx logs
-				if serviceName == "nginx" {
-					metadata = push.LabelsAdapter{}
-				}
-				if strings.Contains(string(serviceName), "-otel") {
-					generator(ctx, log.NewAppLogger(labels, log.NewOtelLogger(string(serviceName))), metadata)
-				} else {
-					generator(ctx, log.NewAppLogger(labels, logger), metadata)
-				}
-
+				generator(ctx, log.NewAppLogger(labels, log.NewOtelLogger(string(serviceName))), metadata)
 			})
 		}
 	}
-	startFailingMimirPod(ctx, logger)
 
 	<-ctx.Done()
 }
