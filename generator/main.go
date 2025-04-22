@@ -43,7 +43,7 @@ func main() {
 	for namespace, apps := range generators {
 		for serviceName, generator := range apps {
 			log.ForAllClusters(namespace, serviceName, func(labels model.LabelSet, metadata push.LabelsAdapter) {
-				generator(ctx, log.NewAppLogger(labels, log.NewOtelLogger(string(serviceName))), metadata)
+				generator(ctx, log.NewAppLogger(labels, log.NewOtelLogger(string(serviceName), labels)), metadata)
 			})
 		}
 	}

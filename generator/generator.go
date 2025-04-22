@@ -14,7 +14,7 @@ import (
 type LogGenerator func(ctx context.Context, logger *log.AppLogger, metadata push.LabelsAdapter)
 
 var generators = map[model.LabelValue]map[model.LabelValue]LogGenerator{
-	"gateway": {
+	"grafanacon": {
 		"grafanacon-json": func(ctx context.Context, logger *log.AppLogger, metadata push.LabelsAdapter) {
 			go func() {
 				for ctx.Err() == nil {
